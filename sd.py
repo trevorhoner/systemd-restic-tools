@@ -1,6 +1,7 @@
 import re
 from subprocess import call
 from pathlib import Path
+import argparse
 
 def choose_option():
     print(f"\nWelcome to systemd service maker!")
@@ -79,17 +80,19 @@ class ServiceMaker:
         print(f"\nWhere do you want to save your .service file?")
         print(f"\n1) /etc/systemd/system/")
         print(f"2) other location")
-        service_option = input("\n:")
-        if not service_option == int(1) or int(2):
-            print(f"\nNot a valid option. Please choose 1, or 2!")
-            service_option = int(input("\nTry again:"))
-        else:
-            None
+        service_option = int(input("\n:"))
 
-        if int(service_option) == 1:
+        try:
+            while service_option not in (1,2):
+                print(f"Please pick 1 or 2.")
+                service_option = int(input("\nTry again: "))
+        except ValueError:
+            print(f"Please pick 1 or 2")
+
+        if service_option == 1:
             service_location = "/etc/systemd/system/"
-        elif int(service_option) == 2:
-            print(f"Enter location of .service file")
+        elif service_option == 2:
+            print(f"Enter directory of .service file")
             service_location = input(f"\n:")
         else:
             None
