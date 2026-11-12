@@ -3,6 +3,22 @@ from subprocess import call
 from pathlib import Path
 import argparse
 
+parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', description='systemd manager', epilog='Provides a fast way to efficiently manage and create systemd files')
+parser.add_argument('--new', '-n', action='store_true', help='Makes new unit file')
+parser.add_argument('--list', '-l', action='store_true', help='List all created unit files')
+parser.add_argument('--delete', '-d', action='store_true', help='Deletes a unit file')
+
+args = parser.parse_args()
+
+if args.new:
+    print("It news!")
+
+elif args.list:
+    print("It lists!")
+
+elif args.delete:
+    print("It delete!")
+
 def choose_option():
     print(f"\nWelcome to systemd service maker!")
     print(f"What would you like to do?")
@@ -100,11 +116,11 @@ class ServiceMaker:
         
         service_path = Path(service_location)
 
-choice = choose_option()
-systemd_action = ServiceMaker(choice)
-
-if choice == 1:
-    systemd_action.new_service()
-
-else: 
-    None
+#choice = choose_option()
+#systemd_action = ServiceMaker(choice)
+#
+#if choice == 1:
+#    systemd_action.new_service()
+#
+#else: 
+#    None
