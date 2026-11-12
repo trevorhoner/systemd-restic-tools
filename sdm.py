@@ -8,17 +8,6 @@ parser.add_argument('--new', '-n', action='store_true', help='Makes new unit fil
 parser.add_argument('--list', '-l', action='store_true', help='List all created unit files')
 parser.add_argument('--delete', '-d', action='store_true', help='Deletes a unit file')
 
-args = parser.parse_args()
-
-if args.new:
-    print("It news!")
-
-elif args.list:
-    print("It lists!")
-
-elif args.delete:
-    print("It delete!")
-
 def choose_option():
     print(f"\nWelcome to systemd service maker!")
     print(f"What would you like to do?")
@@ -115,6 +104,18 @@ class ServiceMaker:
             
         
         service_path = Path(service_location)
+
+args = parser.parse_args()
+
+if args.new:
+    sdm_new = ServiceMaker(1)
+    sdm_new.new_service()
+
+elif args.list:
+    print("It lists!")
+
+elif args.delete:
+    print("It delete!")
 
 #choice = choose_option()
 #systemd_action = ServiceMaker(choice)
