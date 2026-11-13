@@ -4,23 +4,9 @@ from pathlib import Path
 import argparse
 
 parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', description='systemd manager', epilog='Provides a fast way to efficiently manage and create systemd files')
-parser.add_argument('--new', '-n', action='store_true', help='Makes new unit file')
-parser.add_argument('--list', '-l', action='store_true', help='List all created unit files')
-parser.add_argument('--delete', '-d', action='store_true', help='Deletes a unit file')
-
-def choose_option():
-    print(f"\nWelcome to systemd service maker!")
-    print(f"What would you like to do?")
-    print(f"\n1) New service")
-    print(f"2) List services")
-    print(f"3) Delete service\n")
-    choice = input(":")
-    while not re.fullmatch(r'\d',choice):
-        print(f"\nNot a valid option. Please choose 1, 2, or 3!")
-        choice = input("\nTry again:")
-        return int(choice)
-    else:
-        return int(choice)
+parser.add_argument('-n', '--new', action='store_true', help='makes new unit file')
+parser.add_argument('-l', '--list', action='store_true', help='list all created unit files')
+parser.add_argument('-d', '--delete',  action='store_true', help='deletes a unit file')
 
 class ServiceMaker:
     """program that makes simple systemd services."""
@@ -32,7 +18,10 @@ class ServiceMaker:
 
     def new_service(self):
         """Makes new service"""
-
+        #Make a name for your new service
+        print(f"\nMake a name for your new service")
+        service_name = input(":")
+        new_service = f"{service_name}.service"
 
         #Enter the description for your unit file
         print(f"\nEnter a description for your service")
@@ -83,7 +72,7 @@ class ServiceMaker:
 
         #Asking the user where to save the .service unit file
         print(f"\nWhere do you want to save your .service file?")
-        print(f"\n1) /etc/systemd/system/")
+        print(f"\n1) ~/sdm/services/")
         print(f"2) other location")
         service_option = int(input("\n:"))
 
@@ -95,7 +84,7 @@ class ServiceMaker:
             print(f"Please pick 1 or 2")
 
         if service_option == 1:
-            service_location = "/etc/systemd/system/"
+            service_location = "./services/"
         elif service_option == 2:
             print(f"Enter directory of .service file")
             service_location = input(f"\n:")
@@ -103,7 +92,9 @@ class ServiceMaker:
             None
             
         
-        service_path = Path(service_location)
+        service_path = Path(f"{service_location}{new_service}")
+        service_path.parent.mkdir(parents=True, exist_ok=True)
+        service_path.write_text(service)
 
 args = parser.parse_args()
 
@@ -117,11 +108,5 @@ elif args.list:
 elif args.delete:
     print("It delete!")
 
-#choice = choose_option()
-#systemd_action = ServiceMaker(choice)
-#
-#if choice == 1:
-#    systemd_action.new_service()
-#
-#else: 
-#    None
+else:
+    parser.parse_args(["-h"])
