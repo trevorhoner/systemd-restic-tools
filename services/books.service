@@ -1,0 +1,8 @@
+[Unit]
+book tools
+
+[Service]
+ExecStart=/usr/local/bin/books.sh
+
+[Install]
+WantedBy=multi-user.target

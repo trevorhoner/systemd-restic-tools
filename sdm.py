@@ -1,4 +1,5 @@
 import re
+import json
 from subprocess import call
 from pathlib import Path
 import argparse
@@ -11,17 +12,18 @@ parser.add_argument('-d', '--delete',  action='store_true', help='deletes a unit
 class ServiceMaker:
     """program that makes simple systemd services."""
 
-    def __init__(self, choice, service_name=''):
+    def __init__(self):
         """Select from: new, list, delete and write the name of the service"""
-        self.choice = choice
-        self.service_name = service_name
+        #self.choice = choice
+        #self.service_name = service_name
+        self.data_path = Path("./data.json")
 
     def new_service(self):
         """Makes new service"""
         #Make a name for your new service
         print(f"\nMake a name for your new service")
         service_name = input(":")
-        new_service = f"{service_name}.service"
+        self.new_service = f"{service_name}.service"
 
         #Enter the description for your unit file
         print(f"\nEnter a description for your service")
@@ -92,18 +94,65 @@ class ServiceMaker:
             None
             
         
-        service_path = Path(f"{service_location}{new_service}")
-        service_path.parent.mkdir(parents=True, exist_ok=True)
-        service_path.write_text(service)
+        self.service_path = Path(f"{service_location}{self.new_service}")
+        self.data = f"{self.new_service}, Path: {self.service_path}"
+
+        self.service_path.parent.mkdir(parents=True, exist_ok=True)
+        self.service_path.write_text(service)
+
+    def activate_service(self):
+        """Activates new unit file"""
+
+        print(f"\nDo you wish to start and enable {self.new_service}?")
+        choice = input("y/n: ")
+
+        if choice == "y":
+            call(["sudo", "systemctl", "link", self.service_path])
+            call(["sudo", "systemctl", "daemon-reload"])
+            call(["sudo", "systemctl", "start", self.new_service])
+
+        else:
+            return None
+
+    def write_service(self):
+        """Write service to JSON file with directory"""
+
+        json_data = []
+
+        if data_path.exists():
+            with open(self.data_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+        else:
+            json_data = []
+
+        json_data.append(self.data)
+
+        with open(self.data_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+    def list_services(self):
+        """Lists services from data.json"""
+
+        with open(self.data_path, "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+
+        for service in json_data:
+            print(f"\n{service}")
+        
+
 
 args = parser.parse_args()
 
 if args.new:
-    sdm_new = ServiceMaker(1)
+    sdm_new = ServiceMaker()
     sdm_new.new_service()
+    sdm_new.activate_service()
+    sdm_new.write_service()
 
 elif args.list:
-    print("It lists!")
+    sdm_list = ServiceMaker()
+    sdm_list.list_services()
 
 elif args.delete:
     print("It delete!")

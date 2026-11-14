@@ -1,0 +1,8 @@
+[Unit]
+restic tools
+
+[Service]
+ExecStart=/usr/local/bin/restic.sh
+
+[Install]
+WantedBy=multi-user.target

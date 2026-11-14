@@ -1,0 +1,5 @@
+[
+  "books.service, Path:services/books.service",
+  "restic-backup.service, Path: services/restic-backup.service",
+  "books.service, Path: services/books.service"
+]
