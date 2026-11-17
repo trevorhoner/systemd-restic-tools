@@ -25,7 +25,28 @@ class ServiceMaker:
         service_name = input(":")
         self.new_service = f"{service_name}.service"
 
-        #Enter the description for your unit file
+        #Checks if there's a pre-existing service with the same name
+        if self.data_path.exists():
+            with open(self.data_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            for line in json_data:
+                if re.search(self.new_service, line):
+                    print(f"\n'{self.new_service}' is already a service! What would you like to do?")
+                    choice = input(f"(o)verwrite or (n)ew file?: ")
+
+                    if choice == "o":
+                        print(f"\nOverwiting old service.")
+                        return None
+
+                    else:
+                        print(f"\nMake a new name for your new service")
+                        service_name = input(":")
+                        self.new_service = f"{service_name}.service"
+
+    def service_information(self):
+        """Enter the description for your unit file"""
+
         print(f"\nEnter a description for your service")
         description = input(":")
 
@@ -95,7 +116,7 @@ class ServiceMaker:
             
         
         self.service_path = Path(f"{service_location}{self.new_service}")
-        self.data = f"{self.new_service}, Path: {self.service_path}"
+        self.data = f"{self.new_service}           Path: {self.service_path}"
 
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
@@ -119,7 +140,7 @@ class ServiceMaker:
 
         json_data = []
 
-        if data_path.exists():
+        if self.data_path.exists():
             with open(self.data_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
@@ -140,13 +161,16 @@ class ServiceMaker:
         for service in json_data:
             print(f"\n{service}")
         
-
+    def delete_service(self):
+        """deletes service from list"""
+        
 
 args = parser.parse_args()
 
 if args.new:
     sdm_new = ServiceMaker()
     sdm_new.new_service()
+    sdm_new.service_information()
     sdm_new.activate_service()
     sdm_new.write_service()
 
