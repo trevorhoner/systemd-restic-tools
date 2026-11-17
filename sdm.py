@@ -7,7 +7,7 @@ import argparse
 parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', description='systemd manager', epilog='Provides a fast way to efficiently manage and create systemd files')
 parser.add_argument('-n', '--new', action='store_true', help='makes new unit file')
 parser.add_argument('-l', '--list', action='store_true', help='list all created unit files')
-parser.add_argument('-d', '--delete',  action='store_true', help='deletes a unit file')
+parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file')
 
 class ServiceMaker:
     """program that makes simple systemd services."""
@@ -155,15 +155,49 @@ class ServiceMaker:
     def list_services(self):
         """Lists services from data.json"""
 
-        with open(self.data_path, "r", encoding="utf-8") as f:
-            json_data = json.load(f)
+        if self.data_path.exists():
+            with open(self.data_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
 
-        for service in json_data:
-            print(f"\n{service}")
+            for service in json_data:
+                print(f"\n{service}")
+        else:
+            print("\nThere are no services!")
         
     def delete_service(self):
         """deletes service from list"""
-        
+
+        #If no service is passed as an argument, you delete from a list
+        if args.delete == "delete":
+            if self.data_path.exists():
+
+                with open(self.data_path, "r", encoding="utf-8") as f:
+                    json_data = json.load(f)
+
+                print(json_data)
+                count = 1
+                for service in json_data:
+                    print(f"\n[{count}] {service}")
+                    count += 1
+
+                print("\nWhich service do you want to delete?")
+                self.choice = int(input("Enter a number: "))
+
+                while self.choice not in range(count):
+                    print("\nThat's not a valid number from the list. Try again.")
+                    self.choice = int(input("Enter a number: "))
+
+                match = re.search(r'Path: \D+',json_data[self.choice-1])
+                line = re.split(r'Path: ',match[0])
+                print(line)
+                #match = re.search(r'\D{3,}/',json_data[self.choice-1])
+                #second_match = re.search(r'\D{3,}/',match[0])
+                #print(second_match[0])
+                #print(json_data)
+                #print(self.choice)
+
+            else:
+                print("There are no services to delete!")
 
 args = parser.parse_args()
 
@@ -179,7 +213,8 @@ elif args.list:
     sdm_list.list_services()
 
 elif args.delete:
-    print("It delete!")
+    sdm_delete = ServiceMaker()
+    sdm_delete.delete_service()
 
 else:
     parser.parse_args(["-h"])
