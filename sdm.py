@@ -188,13 +188,9 @@ class ServiceMaker:
                     self.choice = int(input("Enter a number: "))
 
                 match = re.search(r'Path: \D+',json_data[self.choice-1])
-                line = re.split(r'Path: ',match[0])
-                print(line)
-                #match = re.search(r'\D{3,}/',json_data[self.choice-1])
-                #second_match = re.search(r'\D{3,}/',match[0])
-                #print(second_match[0])
-                #print(json_data)
-                #print(self.choice)
+                second_match = re.split(r'Path: ',match[0])
+                delete_path = second_match[1]
+                print(delete_path)
 
             else:
                 print("There are no services to delete!")
