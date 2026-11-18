@@ -7,7 +7,7 @@ import argparse
 parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', description='systemd manager', epilog='Provides a fast way to efficiently manage and create systemd files')
 parser.add_argument('-n', '--new', action='store_true', help='makes new unit file')
 parser.add_argument('-l', '--list', action='store_true', help='list all created unit files')
-parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file')
+parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file, -d [unit name] (optional)')
 
 class ServiceMaker:
     """program that makes simple systemd services."""
@@ -82,7 +82,7 @@ class ServiceMaker:
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = call(["sudo","chmod", "+x", f"{path_directory}{script_name}"])
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"])
 
         service = "[Unit]\n"
         service += f"{description}\n"
@@ -128,9 +128,9 @@ class ServiceMaker:
         choice = input("y/n: ")
 
         if choice == "y":
-            call(["sudo", "systemctl", "link", self.service_path])
-            call(["sudo", "systemctl", "daemon-reload"])
-            call(["sudo", "systemctl", "start", self.new_service])
+            run(["sudo", "systemctl", "link", self.service_path], capture_output=True)
+            run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
+            run(["sudo", "systemctl", "start", self.new_service], capture_output=True)
 
         else:
             return None
@@ -159,10 +159,18 @@ class ServiceMaker:
             with open(self.data_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
-            for service in json_data:
-                print(f"\n{service}")
+            if json_data == []:
+                print(f"\nYou have no services saved!")
+
+            else:
+
+                count = 1
+                for service in json_data:
+                    print(f"\n[{count}] {service}")
+                    count += 1
+
         else:
-            print("\nThere are no services!")
+            print("\nThere is no data.json file!")
         
     def delete_service(self):
         """deletes service from list"""
@@ -174,51 +182,84 @@ class ServiceMaker:
                 with open(self.data_path, "r", encoding="utf-8") as f:
                     json_data = json.load(f)
 
-                count = 1
-                for service in json_data:
-                    print(f"\n[{count}] {service}")
-                    count += 1
 
-                print("\nWhich service do you want to delete?")
-                self.choice = int(input("Enter a number: "))
-
-                while self.choice not in range(count):
-                    print("\nThat's not a valid number from the list. Try again.")
-                    self.choice = int(input("Enter a number: "))
-
-                #The name and path of the service to be deleted
-                delete_path = Path(re.search('(?<=Path: )\\D+',json_data[self.choice-1])[0])
-                service_name = re.search('(?:.{3,20}).service',json_data[self.choice-1])[0]
-                
-                print(f"{service_name}, {delete_path}")
-                #Checks if the user wants to delete said service
-                print(f"\nAre you sure you want to delete {service_name}?")
-                self.fail_choice = input(f"y/n: ").lower().strip()
-
-                if self.fail_choice == 'y':
-                    #Deletes unit file from services
-                    run(["sudo","rm","-r",delete_path], capture_output=True)
-
-                    #Removing service from data.json
-                    with open(self.data_path, "r", encoding="utf-8") as f:
-                        json_data = json.load(f)
-
-                    del json_data[self.choice-1]
-
-                    with open(self.data_path, "w", encoding="utf-8") as f:
-                        json.dump(json_data, f, ensure_ascii=False, indent=2)
-
-                elif self.fail_choice == 'n':
-                    return None
+                if json_data == []:
+                    print(f"\nThere are no services to delete!")
 
                 else:
-                    print("\nNot a valid choice.")
-                    print("Please enter (y)es or (n)o")
-                    self.fail_choice = input(f"y/n: ")
+                    count = 1
+                    for service in json_data:
+                        print(f"\n[{count}] {service}")
+                        count += 1
+
+                    print("\nWhich service do you want to delete?")
+                    self.choice = int(input("Enter a number: "))
+
+                    while self.choice not in range(count):
+                        print("\nThat's not a valid number from the list. Try again.")
+                        self.choice = int(input("Enter a number: "))
+
+                    #The name and path of the service to be deleted
+                    delete_path = Path(re.search('(?<=Path: )\\D+',json_data[self.choice-1])[0])
+                    service_name = re.search('(?:.{3,20}).service',json_data[self.choice-1])[0]
+                    
+                    #Checks if the user wants to delete said service
+                    print(f"\nAre you sure you want to delete {service_name}?")
+                    self.fail_choice = input(f"y/n: ").lower().strip()
+
+                    if self.fail_choice == 'y':
+                        #Deletes unit file from services
+                        run(["sudo", "systemctl", "stop", delete_path], capture_output=True)
+                        run(["sudo", "systemctl", "disable", delete_path], capture_output=True)
+                        run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
+                        run(["sudo","rm","-r", delete_path], capture_output=True)
+
+                        #Removing service from data.json
+                        with open(self.data_path, "r", encoding="utf-8") as f:
+                            json_data = json.load(f)
+
+                        del json_data[self.choice-1]
+
+                        with open(self.data_path, "w", encoding="utf-8") as f:
+                            json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+                    elif self.fail_choice == 'n':
+                        return None
+
+                    else:
+                        print("\nNot a valid choice.")
+                        print("Please enter (y)es or (n)o")
+                        self.fail_choice = input(f"y/n: ")
                 
 
             else:
-                print("There are no services to delete!")
+                print("There is no data.json file!")
+
+        else:
+            with open(self.data_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            count = 0
+            for service in json_data:
+                service_name = re.search(f"{args.delete}.service",json_data[count])[0]
+
+                if service_name:
+                #if re.match(args.delete,json_data[count]):
+                    delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
+                    run(["sudo", "systemctl", "stop", service_name], capture_output=True)
+                    run(["sudo", "systemctl", "disable", service_name], capture_output=True)
+                    run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
+                    run(["sudo","rm","-r", delete_path], capture_output=True)
+                    del json_data[count]
+
+                    print(f"\n{service_name} has been deleted!")
+
+                else:
+                    count += 1
+                
+            with open(self.data_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)  
+
 
 args = parser.parse_args()
 
