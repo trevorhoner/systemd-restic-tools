@@ -1,6 +1,6 @@
 import re
 import json
-from subprocess import call
+from subprocess import run
 from pathlib import Path
 import argparse
 
@@ -190,13 +190,25 @@ class ServiceMaker:
                 delete_path = Path(re.search('(?<=Path: )\\D+',json_data[self.choice-1])[0])
                 service_name = re.search('(?:.{3,20}).service',json_data[self.choice-1])[0]
                 
+                print(f"{service_name}, {delete_path}")
+                #Checks if the user wants to delete said service
                 print(f"\nAre you sure you want to delete {service_name}?")
-                self.fail_choice = input(f"y/n: ")
+                self.fail_choice = input(f"y/n: ").lower().strip()
 
-                if self.fail_choice == "y":
-                    call("sudo","rm","-r",{delete_path})
+                if self.fail_choice == 'y':
+                    #Deletes unit file from services
+                    run(["sudo","rm","-r",delete_path], capture_output=True)
 
-                elif self.fail_choice == "n":
+                    #Removing service from data.json
+                    with open(self.data_path, "r", encoding="utf-8") as f:
+                        json_data = json.load(f)
+
+                    del json_data[self.choice-1]
+
+                    with open(self.data_path, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+                elif self.fail_choice == 'n':
                     return None
 
                 else:
