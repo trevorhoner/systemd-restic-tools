@@ -1,0 +1,12 @@
+#Exclude everything
+$HOME/*
+$HOME/.cache
+$HOME/Downloads
+$HOME/.local
+
+#Whitelist directory
+!$HOME/Desktop
+!$HOME/Documents
+!$HOME/Games
+!$HOME/Pictures
+!$HOME/Videos
