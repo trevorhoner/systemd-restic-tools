@@ -174,7 +174,6 @@ class ServiceMaker:
                 with open(self.data_path, "r", encoding="utf-8") as f:
                     json_data = json.load(f)
 
-                print(json_data)
                 count = 1
                 for service in json_data:
                     print(f"\n[{count}] {service}")
@@ -187,10 +186,24 @@ class ServiceMaker:
                     print("\nThat's not a valid number from the list. Try again.")
                     self.choice = int(input("Enter a number: "))
 
-                match = re.search(r'Path: \D+',json_data[self.choice-1])
-                second_match = re.split(r'Path: ',match[0])
-                delete_path = second_match[1]
-                print(delete_path)
+                #The name and path of the service to be deleted
+                delete_path = Path(re.search('(?<=Path: )\\D+',json_data[self.choice-1])[0])
+                service_name = re.search('(?:.{3,20}).service',json_data[self.choice-1])[0]
+                
+                print(f"\nAre you sure you want to delete {service_name}?")
+                self.fail_choice = input(f"y/n: ")
+
+                if self.fail_choice == "y":
+                    call("sudo","rm","-r",{delete_path})
+
+                elif self.fail_choice == "n":
+                    return None
+
+                else:
+                    print("\nNot a valid choice.")
+                    print("Please enter (y)es or (n)o")
+                    self.fail_choice = input(f"y/n: ")
+                
 
             else:
                 print("There are no services to delete!")
