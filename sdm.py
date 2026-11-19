@@ -9,6 +9,8 @@ parser.add_argument('-n', '--new', action='store_true', help='makes new unit fil
 parser.add_argument('-l', '--list', action='store_true', help='list all created unit files')
 parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file, -d [unit name] (optional)')
 
+home = Path.home()
+
 class ServiceMaker:
     """program that makes simple systemd services."""
 
@@ -95,20 +97,23 @@ class ServiceMaker:
 
         #Asking the user where to save the .service unit file
         print(f"\nWhere do you want to save your .service file?")
-        print(f"\n1) ~/sdm/services/")
-        print(f"2) other location")
+        print(f"\n1) home/sdm/services/")
+        print(f"2) home/.config/systemd/user/")
+        print(f"3) other location")
         service_option = int(input("\n:"))
 
         try:
-            while service_option not in (1,2):
-                print(f"Please pick 1 or 2.")
+            while service_option not in (1,2,3):
+                print(f"Please pick 1, 2, or 3.")
                 service_option = int(input("\nTry again: "))
         except ValueError:
-            print(f"Please pick 1 or 2")
+            print(f"Please pick 1, 2, or 3")
 
         if service_option == 1:
-            service_location = "./services/"
+            service_location = f"{home}/sdm/services/"
         elif service_option == 2:
+            service_location = f"{home}/.config/systemd/user/"
+        elif service_option == 3:
             print(f"Enter directory of .service file")
             service_location = input(f"\n:")
         else:
@@ -128,9 +133,10 @@ class ServiceMaker:
         choice = input("y/n: ")
 
         if choice == "y":
-            run(["sudo", "systemctl", "link", self.service_path], capture_output=True)
-            run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
-            run(["sudo", "systemctl", "start", self.new_service], capture_output=True)
+            run(["systemctl", "link", self.service_path], capture_output=True)
+            run(["systemctl", "--user", "daemon-reload"], capture_output=True)
+            run(["systemctl", "--user", "enable", "--now", self.new_service], capture_output=True)
+            run(["systemctl", "start", self.new_service], capture_output=True)
 
         else:
             return None
@@ -209,9 +215,11 @@ class ServiceMaker:
 
                     if self.fail_choice == 'y':
                         #Deletes unit file from services
-                        run(["sudo", "systemctl", "stop", delete_path], capture_output=True)
-                        run(["sudo", "systemctl", "disable", delete_path], capture_output=True)
-                        run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
+                        run(["systemctl", "stop", service_name], capture_output=True)
+                        run(["systemctl", "--user", "stop", service_name], capture_output=True)
+                        run(["systemctl", "--user", "kill", "--signal=SIGKILL", service_name], capture_output=True)
+                        run(["systemctl", "disable", service_name], capture_output=True)
+                        run(["systemctl", "daemon-reload"], capture_output=True)
                         run(["sudo","rm","-r", delete_path], capture_output=True)
 
                         #Removing service from data.json
@@ -244,7 +252,6 @@ class ServiceMaker:
                 service_name = re.search(f"{args.delete}.service",json_data[count])[0]
 
                 if service_name:
-                #if re.match(args.delete,json_data[count]):
                     delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
                     run(["sudo", "systemctl", "stop", service_name], capture_output=True)
                     run(["sudo", "systemctl", "disable", service_name], capture_output=True)

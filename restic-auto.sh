@@ -5,35 +5,29 @@
 set -u
 
 # ─── Common settings ────────────────────────────────────────────────
-PASSFILE="$HOME/.bashscripts/.restic-passphrase"
+PASSFILE="$HOME/.restic-passphrase"
 SOURCE="$HOME/"
-TAGS="--tag arch-home --tag $(date +%Y-%m)"
+TAGS="--tag home-folder --tag $(date +%Y-%m)"
 
 # ─── Home Backups ───────────────────────────────────────────────────
-EXTERNAL_REPO="/mnt/ExternalDrive/restic"
+EXTERNAL_REPO="/home/trevor/backups"
 EXTERNAL_LOG="$HOME/.log/restic-external.log"
 EXTERNAL_EXCLUDES=(
-    "$HOME/.cache"
+    "$HOME/.*"
+    "$HOME/backups"
     "$HOME/Downloads"
-    "$HOME/.local/share/Trash"
-    "$HOME/.npm"
-    "$HOME/.cargo"
 )
 
-CLOUD_REPO="de4875@de48975.rsync.net:restic"
-CLOUD_LOG="$HOME/.log/restic-cloud.log"
-CLOUD_EXCLUDES=(
-    "$HOME/.cache"
-    "$HOME/Downloads"
-    "$HOME/Games"
-    "$HOME/Videos"
-    "$HOME/.local/share/Trash"
-    "$HOME/.npm"
-    "$HOME/.cargo"
-)
+#CLOUD_REPO="de4875@de48975.rsync.net:restic"
+#CLOUD_LOG="$HOME/.log/restic-cloud.log"
+#CLOUD_EXCLUDES=(
+#    "$HOME/.*"
+#    "$HOME/Downloads"
+#    "$HOME/Games"
+#)
 
 # ─── Log Logic ──────────────────────────────────────────────────────
-ALL_LOGS=("$EXTERNAL_LOG" "$CLOUD_LOG")
+ALL_LOGS=("$EXTERNAL_LOG") #"$CLOUD_LOG")
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] ${1:-}"
@@ -140,10 +134,6 @@ backup_and_prune() {
 
 # ─── Execute Backups ────────────────────────────────────────────────
 backup_and_prune "$EXTERNAL_REPO" "$EXTERNAL_LOG" "$SOURCE" "${EXTERNAL_EXCLUDES[@]}"
-backup_and_prune "$CLOUD_REPO" "$CLOUD_LOG" "$SOURCE" "${CLOUD_EXCLUDES[@]}"
-
-# Timeshift is disabled for now
-#backup_and_prune "$EXTERNAL_TREPO" "$EXTERNAL_TLOG" "$T_SOURCE"
-#backup_and_prune "$CLOUD_TREPO" "$CLOUD_TLOG" "$T_SOURCE"
+#backup_and_prune "$CLOUD_REPO" "$CLOUD_LOG" "$SOURCE" "${CLOUD_EXCLUDES[@]}"
 
 log "All operations completed"
