@@ -387,7 +387,7 @@ class ServiceMaker:
                     #Need to make separate entries for user and system units
                     if self.fail_choice == 'y':
 
-                        #Deletes unit file from services
+                        #Needs to check if a system or user service file
                         run(["sudo", "systemctl", "stop", service_name], check=True)
                         #run(["sudo", "systemctl", "--user", "stop", service_name], check=True)
                         #run(["sudo", "systemctl", "--user", "kill", "--signal=SIGKILL", service_name], check=True)
