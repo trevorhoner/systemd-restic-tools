@@ -1,30 +1,50 @@
 import re
-import os
 import json
 from subprocess import run
 from pathlib import Path
 import argparse
 
-parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', description='systemd manager', epilog='Provides a fast way to efficiently manage and create systemd files')
-parser.add_argument('-n', '--new', action='store_true', help='makes new unit file')
-parser.add_argument('-l', '--list', action='store_true', help='list all created unit files')
-parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file, -d [unit name] (optional)')
+parser = argparse.ArgumentParser(prog='sdm', usage='%(prog)s [options]', 
 
+                                 description='systemd manager', 
+                                 epilog='Provides a fast way to efficiently manage and create systemd files',
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('-n', '--new', action='store_true', 
+                    help='makes new unit file')
+
+parser.add_argument('-ns', '--new-system', nargs='?', const='new-system', 
+                    default=None, metavar='-ns (system).service', help='new system unit')
+
+parser.add_argument('-nys', '--new-system-activate', nargs='?', const='new-system', 
+                    default=None, metavar='-nys (system).service', help='new system unit & activate')
+
+parser.add_argument('-nu', '--new-user', nargs='?', const='new-user', 
+                    default=None, metavar='-nu (user).service', help='new user unit')
+
+parser.add_argument('-nyu', '--new-user-activate', nargs='?', const='new-user', 
+                    default=None, metavar='-nyu (user).service', help='new user unit & activate')
+
+parser.add_argument('-y', '--yes', action='store_true', 
+                    help='automatically activates/deactivates service')
+
+parser.add_argument('-l', '--list', action='store_true', 
+                    help='list all created unit files')
+
+parser.add_argument('-d', '--delete', nargs='?', const='delete', 
+                    default=None, metavar='-d *.service',
+                    help='deletes a unit file, -d [unit name]')
+
+parser.add_argument('-dy', '--delete-deactivate', nargs='?', const='delete', 
+                    default=None, metavar='-d *.service',
+                    help='deletes & deactivates a unit file, -d [unit name]')
 home = Path.home()
-env = os.environ.copy()
-env["XDG_RUNTIME_DIR"] = f"/run/user/{os.getuid()}"
-runtime = Path(env["XDG_RUNTIME_DIR"])
-bus = runtime/"bus"
-if bus.exists():
-    env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus}"
 
 class ServiceMaker:
     """program that makes simple systemd services."""
 
     def __init__(self):
         """Select from: new, list, delete and write the name of the service"""
-        #self.choice = choice
-        #self.service_name = service_name
         self.data_path = Path("./data.json")
 
     def new_service(self):
@@ -133,19 +153,161 @@ class ServiceMaker:
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
 
+    def new_system_service(self):
+        """Makes new system service for systemd"""
+
+        self.new_service = str(args.new_system)
+
+        print(f"\nWhere is your script or program located?")
+        print(f"\n1) /usr/local/bin/")
+        print(f"2) /usr/sbin/")
+        print(f"3) other location")
+        try:
+            path_option = int(input("\n:"))
+        except ValueError:
+            print(f"\nNot a valid option. Please choose 1, 2, or 3!")
+            path_option = int(input("\nTry again:"))
+
+        if path_option == 1:
+            path_directory = "/usr/local/bin/"
+
+        if path_option == 2:
+            path_directory = "/usr/sbin/"
+
+        #User provides his own directory to the script
+        if path_option == 3:
+            print(f"\nEnter the path location to your script or program")
+            path_directory = input(":")
+            while not re.fullmatch(r'/\D{3,26}/\D{3,26}/',path_directory):
+                print(f"\nPlease type a correct directory")
+                print(f"\n'{path_directory}' is not a valid directory")
+                print(f"Must be in this format: '/path/to/script/'")
+                path_directory = input(f"\nTry again:")
+            else:
+                None
+
+        print(f"\nWhat is the name of your script? e.g. restic.sh")
+        script_name = input(":")
+
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], env=env, check=True)
+
+        service = "[Unit]\n"
+        service += f"{description}\n"
+        service += "\n"
+        service += "[Service]\n"
+        service += f"ExecStart={path_directory}{script_name}\n"
+        service += "\n"
+        service += "[Install]\n"
+        service += "WantedBy=multi-user.target"
+
+        print(f"\nEnter system.service path: '/path/to/your/system.service'")
+        service_location = input(f": ")
+
+        self.service_path = Path(f"{service_location}{self.new_service}")
+        self.data = f"{self.new_service}     S/U: System      Path: {self.service_path}"
+
+        self.service_path.parent.mkdir(parents=True, exist_ok=True)
+        self.service_path.write_text(service)
+        
+        if not args.new_service_activate:
+
+            print(f"\nDo you wish to start and enable {self.new_service}?")
+            choice = input("y/n: ")
+
+            if choice == "y":
+                run(["sudo", "systemctl", "link", self.service_path], check=True)
+                run(["sudo", "systemctl", "daemon-reload"], check=True)
+                run(["sudo", "systemctl", "enable", "--now",  self.new_service], check=True)
+
+            else:
+                return None
+        else:
+            return None
+
+    def new_user_service(self):
+        """Makes new user service"""
+
+        print(args.new_user)
+
+        self.new_service = str(args.new_user)
+
+        print(f"\nWhere is your script or program located?")
+        print(f"\n1) /usr/local/bin/")
+        print(f"2) /usr/sbin/")
+        print(f"3) other location")
+        try:
+            path_option = int(input("\n:"))
+        except ValueError:
+            print(f"\nNot a valid option. Please choose 1, 2, or 3!")
+            path_option = int(input("\nTry again:"))
+
+        if path_option == 1:
+            path_directory = "/usr/local/bin/"
+
+        if path_option == 2:
+            path_directory = "/usr/sbin/"
+
+        #User provides his own directory to the script
+        if path_option == 3:
+            print(f"\nEnter the path location to your script or program")
+            path_directory = input(":")
+            while not re.fullmatch(r'/\D{3,26}/\D{3,26}/',path_directory):
+                print(f"\nPlease type a correct directory")
+                print(f"\n'{path_directory}' is not a valid directory")
+                print(f"Must be in this format: '/path/to/script/'")
+                path_directory = input(f"\nTry again:")
+            else:
+                None
+
+        print(f"\nWhat is the name of your script? e.g. restic.sh")
+        script_name = input(":")
+
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], env=env, check=True)
+
+        service = "[Unit]\n"
+        service += f"{description}\n"
+        service += "\n"
+        service += "[Service]\n"
+        service += f"ExecStart={path_directory}{script_name}\n"
+        service += "\n"
+        service += "[Install]\n"
+        service += "WantedBy=multi-user.target"
+
+        service_location = f"{home}/.config/systemd/user/"
+
+        self.service_path = Path(f"{service_location}{self.new_service}")
+        self.data = f"{self.new_service}     S/U: User      Path: {self.service_path}"
+
+        self.service_path.parent.mkdir(parents=True, exist_ok=True)
+        self.service_path.write_text(service)
+        
+        if not args.new_user_activate:
+
+            print(f"\nDo you wish to start and enable {self.new_service}?")
+            choice = input("y/n: ")
+
+            if choice == "y":
+                run(["systemctl", "--user", "daemon-reload"], check=True, )
+                run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
+
+            else:
+                return None
+        else:
+            return None
+
     def activate_service(self):
         """Activates new unit file"""
 
-        print(f"\nDo you wish to start and enable {self.new_service}?")
-        choice = input("y/n: ")
+        if args.new_system_activate:
 
-        #Need to add options for both system-units and user-units. NixOS is immutable 
-        if choice == "y":
             run(["sudo", "systemctl", "link", self.service_path], check=True)
             run(["sudo", "systemctl", "daemon-reload"], check=True)
-            #run(["systemctl", "--user", "daemon-reload"], check=True, )
-            #run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
-            run(["sudo", "systemctl", "enable", "--now",  self.new_service], check=True)
+            run(["sudo", "systemctl", "enable", self.new_service], check=True)
+
+        elif args.new_user_activate:
+
+            run(["systemctl", "--user", "daemon-reload"], check=True, )
+            run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
 
         else:
             return None
@@ -175,7 +337,7 @@ class ServiceMaker:
                 json_data = json.load(f)
 
             if json_data == []:
-                print(f"\nYou have no services saved!")
+                print(f"\nYou have no services to list!")
 
             else:
 
@@ -222,7 +384,9 @@ class ServiceMaker:
                     print(f"\nAre you sure you want to delete {service_name}?")
                     self.fail_choice = input(f"y/n: ").lower().strip()
 
+                    #Need to make separate entries for user and system units
                     if self.fail_choice == 'y':
+
                         #Deletes unit file from services
                         run(["sudo", "systemctl", "stop", service_name], check=True)
                         #run(["sudo", "systemctl", "--user", "stop", service_name], check=True)
@@ -252,24 +416,35 @@ class ServiceMaker:
             else:
                 print("There is no data.json file!")
 
-        else:
+        if args.delete_deactivate:
+
             with open(self.data_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
             count = 0
             for service in json_data:
                 service_name = re.search(f"{args.delete}.service",json_data[count])[0]
+                system_or_user = re.search('(?<=S/U: )\\D{4,6}',json_data[count])[0]
 
-                if service_name:
+                if service_name == True and system_or_user == "System":
                     delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
-                    run(["sudo", "systemctl", "stop", service_name], env=env, check=True, capture_output=True)
-                    run(["sudo", "systemctl", "disable", service_name], env=env, check=True, capture_output=True)
-                    run(["sudo", "systemctl", "daemon-reload"], env=env, check=True, capture_output=True)
-                    run(["sudo","rm","-r", delete_path], env=env, check=True, capture_output=True)
+                    run(["sudo", "systemctl", "stop", service_name], check=True)
+                    run(["sudo", "systemctl", "disable", service_name], check=True)
+                    run(["sudo", "systemctl", "daemon-reload"], check=True)
+                    run(["sudo","rm","-r", delete_path], check=True)
                     del json_data[count]
 
-                    print(f"\n{service_name} has been deleted!")
+                    print(f"\nSystem service: {service_name} has been deleted!")
 
+                elif service_name == True and system_or_user == "User":
+                    delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
+                    run(["sudo", "systemctl", "stop", service_name], check=True)
+                    run(["sudo", "systemctl", "disable", service_name], check=True)
+                    run(["sudo", "systemctl", "daemon-reload"], check=True)
+                    run(["sudo","rm","-r", delete_path], check=True)
+                    del json_data[count]
+
+                    print(f"\nUser service: {service_name} has been deleted!")
                 else:
                     count += 1
                 
@@ -280,11 +455,30 @@ class ServiceMaker:
 args = parser.parse_args()
 
 if args.new:
+    print(args.new)
     sdm_new = ServiceMaker()
     sdm_new.new_service()
     sdm_new.service_information()
     sdm_new.activate_service()
     sdm_new.write_service()
+
+elif args.new_system:
+    sdm_new_system = ServiceMaker()
+    sdm_new_system.new_system_service()
+    
+elif args.new_user:
+    sdm_new_user = ServiceMaker()
+    sdm_new_user.new_user_service()
+
+elif args.new_system_activate:
+    sdm_new_system_activate = ServiceMaker()
+    sdm_new_system_activate.new_system_service()
+    sdm_new_system_activate.activate_service()
+
+elif args.new_user_activate:
+    sdm_new_user_activate = ServiceMaker()
+    sdm_new_user_activate.new_user_service()
+    sdm_new_user_activate.activate_service()
 
 elif args.list:
     sdm_list = ServiceMaker()
@@ -293,6 +487,10 @@ elif args.list:
 elif args.delete:
     sdm_delete = ServiceMaker()
     sdm_delete.delete_service()
+
+elif args.delete and args.yes:
+    sdm_delete_yes = ServiceMaker()
+    sdm_delete_yes.delete_service()
 
 else:
     parser.parse_args(["-h"])
