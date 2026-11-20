@@ -1,4 +1,5 @@
 import re
+import os
 import json
 from subprocess import run
 from pathlib import Path
@@ -10,6 +11,12 @@ parser.add_argument('-l', '--list', action='store_true', help='list all created 
 parser.add_argument('-d', '--delete', nargs='?', const='delete', default=None, help='deletes a unit file, -d [unit name] (optional)')
 
 home = Path.home()
+env = os.environ.copy()
+env["XDG_RUNTIME_DIR"] = f"/run/user/{os.getuid()}"
+runtime = Path(env["XDG_RUNTIME_DIR"])
+bus = runtime/"bus"
+if bus.exists():
+    env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus}"
 
 class ServiceMaker:
     """program that makes simple systemd services."""
@@ -84,7 +91,7 @@ class ServiceMaker:
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"])
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], env=env, check=True)
 
         service = "[Unit]\n"
         service += f"{description}\n"
@@ -132,11 +139,13 @@ class ServiceMaker:
         print(f"\nDo you wish to start and enable {self.new_service}?")
         choice = input("y/n: ")
 
+        #Need to add options for both system-units and user-units. NixOS is immutable 
         if choice == "y":
-            run(["systemctl", "link", self.service_path], capture_output=True)
-            run(["systemctl", "--user", "daemon-reload"], capture_output=True)
-            run(["systemctl", "--user", "enable", "--now", self.new_service], capture_output=True)
-            run(["systemctl", "start", self.new_service], capture_output=True)
+            run(["sudo", "systemctl", "link", self.service_path], check=True)
+            run(["sudo", "systemctl", "daemon-reload"], check=True)
+            #run(["systemctl", "--user", "daemon-reload"], check=True, )
+            #run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
+            run(["sudo", "systemctl", "enable", "--now",  self.new_service], check=True)
 
         else:
             return None
@@ -215,12 +224,12 @@ class ServiceMaker:
 
                     if self.fail_choice == 'y':
                         #Deletes unit file from services
-                        run(["systemctl", "stop", service_name], capture_output=True)
-                        run(["systemctl", "--user", "stop", service_name], capture_output=True)
-                        run(["systemctl", "--user", "kill", "--signal=SIGKILL", service_name], capture_output=True)
-                        run(["systemctl", "disable", service_name], capture_output=True)
-                        run(["systemctl", "daemon-reload"], capture_output=True)
-                        run(["sudo","rm","-r", delete_path], capture_output=True)
+                        run(["sudo", "systemctl", "stop", service_name], check=True)
+                        #run(["sudo", "systemctl", "--user", "stop", service_name], check=True)
+                        #run(["sudo", "systemctl", "--user", "kill", "--signal=SIGKILL", service_name], check=True)
+                        run(["sudo", "systemctl", "disable", service_name], check=True)
+                        run(["sudo", "systemctl", "daemon-reload"], check=True)
+                        run(["sudo","rm","-r", delete_path], check=True)
 
                         #Removing service from data.json
                         with open(self.data_path, "r", encoding="utf-8") as f:
@@ -253,10 +262,10 @@ class ServiceMaker:
 
                 if service_name:
                     delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
-                    run(["sudo", "systemctl", "stop", service_name], capture_output=True)
-                    run(["sudo", "systemctl", "disable", service_name], capture_output=True)
-                    run(["sudo", "systemctl", "daemon-reload"], capture_output=True)
-                    run(["sudo","rm","-r", delete_path], capture_output=True)
+                    run(["sudo", "systemctl", "stop", service_name], env=env, check=True, capture_output=True)
+                    run(["sudo", "systemctl", "disable", service_name], env=env, check=True, capture_output=True)
+                    run(["sudo", "systemctl", "daemon-reload"], env=env, check=True, capture_output=True)
+                    run(["sudo","rm","-r", delete_path], env=env, check=True, capture_output=True)
                     del json_data[count]
 
                     print(f"\n{service_name} has been deleted!")
