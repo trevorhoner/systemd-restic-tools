@@ -146,17 +146,34 @@ class ServiceMaker:
         else:
             None
             
-        
-        self.service_path = Path(f"{service_location}{self.new_service}")
-        self.data = f"{self.new_service}           Path: {self.service_path}"
+        if service_option != 2:
 
-        self.service_path.parent.mkdir(parents=True, exist_ok=True)
-        self.service_path.write_text(service)
+            self.service_path = Path(f"{service_location}{self.new_service}")
+            self.data = f"{self.new_service}     S/U: System        Path: {self.service_path}"
+
+            self.service_path.parent.mkdir(parents=True, exist_ok=True)
+            self.service_path.write_text(service)
+
+        else:
+
+            self.service_path = Path(f"{service_location}{self.new_service}")
+            self.data = f"{self.new_service}     S/U: User        Path: {self.service_path}"
+
+            self.service_path.parent.mkdir(parents=True, exist_ok=True)
+            self.service_path.write_text(service)
 
     def new_system_service(self):
         """Makes new system service for systemd"""
 
-        self.new_service = str(args.new_system)
+        if args.new_system != "new-system":
+            self.new_service = f"{str(args.new_system)}.service"
+
+        else:
+            print(f"\nWhat would you like to name your system service?")
+            self.new_service = f"{input(f"\n:")}.service"
+
+        print(f"\nEnter a description for your service")
+        description = input(":")
 
         print(f"\nWhere is your script or program located?")
         print(f"\n1) /usr/local/bin/")
@@ -189,7 +206,7 @@ class ServiceMaker:
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], env=env, check=True)
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], check=True)
 
         service = "[Unit]\n"
         service += f"{description}\n"
@@ -200,36 +217,47 @@ class ServiceMaker:
         service += "[Install]\n"
         service += "WantedBy=multi-user.target"
 
-        print(f"\nEnter system.service path: '/path/to/your/system.service'")
-        service_location = input(f": ")
+        print(f"\nWhere do you wish to save your new system.service unit?")
+        print(f"\n1) systemd directory: /etc/systemd/system/")
+        print(f"2) sdm directory: sdm/services/")
+        print(f"3) custom absolute-path: '/path/to/your/system.service'")
+        choice = int(input(f"\n:"))
 
-        self.service_path = Path(f"{service_location}{self.new_service}")
+        if choice == 1:
+            service_location = "/etc/systemd/system/"
+            self.service_path = f"{service_location}{self.new_service}"
+
+        elif choice == 2:
+            service_location = Path("./services/")
+            self.service_path = Path(f"{service_location}{self.new_service}")
+
+        else:
+            print(f"\nPlease define your custom absolute-path")
+            service_location = input(":")
+            self.service_path = f"{service_location}{self.new_service}"
+
         self.data = f"{self.new_service}     S/U: System      Path: {self.service_path}"
-
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
-        
-        if not args.new_service_activate:
 
-            print(f"\nDo you wish to start and enable {self.new_service}?")
-            choice = input("y/n: ")
+        print(f"\nDo you wish to start and enable {self.new_service}?")
+        choice = input("y/n: ")
 
-            if choice == "y":
-                run(["sudo", "systemctl", "link", self.service_path], check=True)
-                run(["sudo", "systemctl", "daemon-reload"], check=True)
-                run(["sudo", "systemctl", "enable", "--now",  self.new_service], check=True)
+        if choice == "y":
+            run(["sudo", "systemctl", "link", self.service_path], check=True)
+            run(["sudo", "systemctl", "daemon-reload"], check=True)
+            run(["sudo", "systemctl", "enable", "--now",  self.new_service], check=True)
 
-            else:
-                return None
         else:
             return None
 
     def new_user_service(self):
         """Makes new user service"""
 
-        print(args.new_user)
-
         self.new_service = str(args.new_user)
+
+        print(f"\nEnter a description for your service")
+        description = input(":")
 
         print(f"\nWhere is your script or program located?")
         print(f"\n1) /usr/local/bin/")
@@ -262,7 +290,7 @@ class ServiceMaker:
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], env=env, check=True)
+        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], check=True)
 
         service = "[Unit]\n"
         service += f"{description}\n"
@@ -281,17 +309,13 @@ class ServiceMaker:
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
         
-        if not args.new_user_activate:
+        print(f"\nDo you wish to start and enable {self.new_service}?")
+        choice = input("y/n: ")
 
-            print(f"\nDo you wish to start and enable {self.new_service}?")
-            choice = input("y/n: ")
+        if choice == "y":
+            run(["systemctl", "--user", "daemon-reload"], check=True, )
+            run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
 
-            if choice == "y":
-                run(["systemctl", "--user", "daemon-reload"], check=True, )
-                run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
-
-            else:
-                return None
         else:
             return None
 
@@ -465,7 +489,7 @@ if args.new:
 elif args.new_system:
     sdm_new_system = ServiceMaker()
     sdm_new_system.new_system_service()
-    
+
 elif args.new_user:
     sdm_new_user = ServiceMaker()
     sdm_new_user.new_user_service()
@@ -473,7 +497,6 @@ elif args.new_user:
 elif args.new_system_activate:
     sdm_new_system_activate = ServiceMaker()
     sdm_new_system_activate.new_system_service()
-    sdm_new_system_activate.activate_service()
 
 elif args.new_user_activate:
     sdm_new_user_activate = ServiceMaker()
