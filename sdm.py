@@ -324,14 +324,30 @@ class ServiceMaker:
 
             #Activates system unit
             if self.service_option != 3:
-                run(["sudo", "systemctl", "link", self.service_path], check=True)
-                run(["sudo", "systemctl", "daemon-reload"], check=True)
-                run(["sudo", "systemctl", "enable", self.new_service], check=True)
+                
+                print(f"\nDo you wish to start and enable {self.new_service}?")
+                choice = input("y/n: ")
+
+                if choice == "y":
+
+                    run(["sudo", "systemctl", "link", self.service_path], check=True)
+                    run(["sudo", "systemctl", "daemon-reload"], check=True)
+                    run(["sudo", "systemctl", "enable", self.new_service], check=True)
+
+                else:
+                    return None
 
             else:
-                #Activates user unit
-                run(["systemctl", "--user", "daemon-reload"], check=True, )
-                run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
+                print(f"\nDo you wish to start and enable {self.new_service}?")
+                choice = input("y/n: ")
+
+                if choice == "y":
+                    #Activates user unit
+                    run(["systemctl", "--user", "daemon-reload"], check=True, )
+                    run(["systemctl", "--user", "enable", "--now", self.new_service], check=True, )
+
+                else:
+                    return None
 
         if args.new_user:
 
@@ -524,8 +540,8 @@ if args.new:
     sdm_new = ServiceMaker()
     sdm_new.new_service()
     sdm_new.service_information()
-    sdm_new.activate_service()
     sdm_new.write_service()
+    sdm_new.activate_service()
 
 elif args.new_system:
     sdm_new_system = ServiceMaker()
