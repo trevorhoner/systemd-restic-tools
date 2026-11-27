@@ -81,6 +81,7 @@ class ServiceMaker:
     def service_information(self):
         """Enter the description for your unit file"""
 
+        self.path_directory = ''
         print(f"\nEnter a description for your service")
         description = input(":")
 
@@ -91,8 +92,9 @@ class ServiceMaker:
         print(f"3) other location")
 
         #Checks for user entered script directories
-        if self.script_directories.exists():
+        if self.script_directories.exists() and self.script_directories.stat().st_size > 2:
             print(f"\n---------------user's script directories --------------------\n")
+
             with open(self.script_directories, "r", encoding="utf-8") as f:
                 self.script_data = json.load(f)
 
@@ -101,98 +103,131 @@ class ServiceMaker:
                 print(f"{count}) '{script_directory}'")
                 count += 1
 
-            print(f"\nTo delete directory: (number)d or e.g. '1d'")
+            print(f"\nTo select option and delete directory: (number)d or e.g. '1d'")
             print(f"To select option and delete this prompt: (number)dall or e.g. '1dall'\n")
 
             try:
-                path_option = str((input("\n:")).strip())
+                path_option = input("\n:")
+                print(type(path_option))
             except ValueError:
                 print(f"\nNot a valid option.")
                 path_option = int(input("\ntry again:"))
 
-            if int(path_option) == 1:
-                path_directory = "/usr/local/bin/"
+            if path_option == "1":
+                self.path_directory = "/usr/local/bin/"
 
-            elif int(path_option) == 2:
-                path_directory = "/usr/sbin/"
+            elif path_option == "2":
+                self.path_directory = "/usr/sbin/"
 
             #User provides his own directory to the script and saves it for next time
-            elif int(path_option) == 3:
+            elif path_option == "3":
                 print(f"\nEnter the path location to your script or program")
-                path_directory = str(input(":"))
-                while not re.fullmatch(r'/\d{3,26}/\d{3,26}/',path_directory):
+                self.path_directory = str(input(":"))
+                while not re.fullmatch(r'/\D{3,26}/\D{3,26}/',self.path_directory):
                     print(f"\nPlease type a correct directory")
-                    print(f"\n'{path_directory}' is not a valid directory")
+                    print(f"\n'{self.path_directory}' is not a valid directory")
                     print(f"Must be in this format: '/path/to/script/'")
-                    path_directory = input(f"\ntry again:")
+                    self.path_directory = str(input(f"\ntry again:"))
                 else:
                     None
 
-                self.script_data.append(path_directory)
+                self.script_data.append(self.path_directory)
 
                 with open(self.script_directories, "w", encoding="utf-8") as f:
                     json.dump(self.script_data, f, ensure_ascii=False, indent=2)
             
             #Picks an option from user script directories        
-            elif int(path_option) not in (1,2,3) and re.fullmatch(r'\d{1,2}',path_option):
-                path_directory = self.script_data[int(path_option)-4]
+            elif path_option not in ("1","2","3"):
+                self.path_directory = self.script_data[int((re.search(r'\d',str(path_option))[0]))-4]
                     
             #Deletes an option from script_directories.json
-            elif path_option not in (1,2,3) and re.fullmatch(r'\d{1,2}d',path_option):
+            elif path_option not in ("1", "2", "3") and re.fullmatch(r'\d{1,2}d',str(path_option)):
 
-                del self.script_directories[int(path_option)-4]
+                self.path_directory = self.script_data[int((re.search(r'\d',str(path_option))[0]))-4]
+                del self.script_data[int((re.search(r'\d',path_option)[0]))-4]
 
                 with open(self.script_directories, "w", encoding="utf-8") as f:
-                    json_dump(self.script_data, f, ensure_ascii=False, indent=2)
+                    json.dump(self.script_data, f, ensure_ascii=False, indent=2)
 
             #Deletes script_directories.json
-            elif re.fullmatch(r'\\d{1,2}dall',path_option):
+            elif re.fullmatch(r'\d{1,2}dall',path_option):
+                print("It's working")
+                dall_option = int(re.search(r'\d',path_option)[0])
+
+                if dall_option == 1:
+                    self.path_directory = "/usr/local/bin/"
+
+                elif dall_option == 2:
+                    self.path_directory = "/usr/sbin/"
+
+                elif dall_option == 3:
+                    print(f"\nEnter the path location to your script or program")
+                    self.path_directory = str(input(":"))
+                    while not re.fullmatch(r'/\D{3,26}/\D{3,26}/',self.path_directory):
+                        print(f"\nPlease type a correct directory")
+                        print(f"\n'{self.path_directory}' is not a valid directory")
+                        print(f"Must be in this format: '/path/to/script/'")
+                        self.path_directory = str(input(f"\ntry again:"))
+                    else:
+                        None
+
+                else:
+
+                    with open(self.script_directories, "r", encoding="utf-8") as f:
+                        json_data = json.load(f)
+
+                    self.path_directory = json_data[dall_option-4]
+                        
                 self.script_directories.unlink()
 
             else:
                 print(f"\nNot a valid entry.")
         else:
             try:
-                path_option = int(input("\n:").strip())
+                path_option = int(input("\n:"))
             except ValueError:
                 print(f"\nNot a valid option.")
                 path_option = int(input("\ntry again:"))
 
             if path_option == 1:
-                path_directory = "/usr/local/bin/"
+                self.path_directory = "/usr/local/bin/"
 
             elif path_option == 2:
-                path_directory = "/usr/sbin/"
+                self.path_directory = "/usr/sbin/"
 
             #User provides his own directory to the script and saves it for next time
             elif path_option == 3:
                 print(f"\nEnter the path location to your script or program")
-                path_directory = input(":")
-                while not re.search(r'/\D{3,26}/\D{3,26}/',path_directory):
+                self.path_directory = input(":")
+                while not re.search(r'/\D{3,26}/\D{3,26}/',self.path_directory):
                     print(f"\nPlease type a correct directory")
-                    print(f"\n'{path_directory}' is not a valid directory")
+                    print(f"\n'{self.path_directory}' is not a valid directory")
                     print(f"Must be in this format: '/path/to/script/'")
-                    path_directory = input(f"\ntry again:")
+                    self.path_directory = input(f"\ntry again:")
                 else:
                     None
 
-                self.script_data = []
+                with open(self.script_directories, "r", encoding="utf-8") as f:
+                    self.script_data = json.load(f)
 
-                self.script_data.append(path_directory)
+                self.script_data.append(self.path_directory)
 
                 with open(self.script_directories, "w", encoding="utf-8") as f:
                     json.dump(self.script_data, f, ensure_ascii=False, indent=2)
 
+            else:
+                print(f"\nPlease pick 1 - 3!")
+
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], check=True)
+        execute_script = run(["sudo","chmod", "+x", f"{self.path_directory}{script_name}"])
 
         self.service = "[Unit]\n"
         self.service += f"{description}\n"
         self.service += "\n"
         self.service += "[Service]\n"
-        self.service += f"ExecStart={path_directory}{script_name}\n"
+        self.service += f"ExecStart={self.path_directory}{script_name}\n"
         self.service += "\n"
         self.service += "[Install]\n"
         self.service += "WantedBy=multi-user.target"
@@ -221,7 +256,7 @@ class ServiceMaker:
             if self.service_option == 1:
                 self.service_location = f"/etc/systemd/system/"
             elif self.service_option == 2:
-                self.service_location = path(__file__).resolve().parent / "services"
+                self.service_location = Path(__file__).resolve().parent / "services"
             elif self.service_option == 3:
                 self.service_location = f"{home}/.config/systemd/user/"
             elif self.service_option == 4:
@@ -268,7 +303,7 @@ class ServiceMaker:
             if self.service_option == 1:
                 self.service_location = f"/etc/systemd/system/"
             elif self.service_option == 2:
-                self.service_location = path(__file__).resolve().parent / "services"
+                self.service_location = Path(__file__).resolve().parent / "services"
             elif self.service_option == 3:
                 print(f"Enter directory of .service file")
                 self.service_location = input(f"\n:")
@@ -305,7 +340,7 @@ class ServiceMaker:
             elif self.service_option == 3:
                 self.service_location = f"{home}/.local/share/systemd/user/"
             elif self.service_option == 4:
-                self.service_location = path(__file__).resolve().parent / "services"
+                self.service_location = Path(__file__).resolve().parent / "services"
             elif self.service_option == 5:
                 print(f"Enter directory of .service file")
                 self.service_location = input(f"\n:")
@@ -348,7 +383,7 @@ class ServiceMaker:
             service_location = input(":")
             self.service_path = f"{service_location}/{self.new_service}"
 
-        self.data = f"{self.new_service}     s/u: system      path: {self.service_path}"
+        self.data = f"{self.new_service}     s/u: system      Path: {self.service_path}"
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
 
@@ -376,33 +411,33 @@ class ServiceMaker:
             path_option = int(input("\ntry again:"))
 
         if path_option == 1:
-            path_directory = "/usr/local/bin/"
+            self.path_directory = "/usr/local/bin/"
 
         if path_option == 2:
-            path_directory = "/usr/sbin/"
+            self.path_directory = "/usr/sbin/"
 
         #User provides his own directory to the script
         if path_option == 3:
             print(f"\nEnter the path location to your script or program")
-            path_directory = input(":")
-            while not re.fullmatch(r'/\d{3,26}/\d{3,26}/',path_directory):
+            self.path_directory = input(":")
+            while not re.fullmatch(r'/\d{3,26}/\d{3,26}/',self.path_directory):
                 print(f"\nPlease type a correct directory")
-                print(f"\n'{path_directory}' is not a valid directory")
+                print(f"\n'{self.path_directory}' is not a valid directory")
                 print(f"Must be in this format: '/path/to/script/'")
-                path_directory = input(f"\ntry again:")
+                self.path_directory = input(f"\ntry again:")
             else:
                 None
 
         print(f"\nWhat is the name of your script? e.g. restic.sh")
         script_name = input(":")
 
-        execute_script = run(["sudo","chmod", "+x", f"{path_directory}{script_name}"], check=True)
+        execute_script = run(["sudo","chmod", "+x", f"{self.path_directory}{script_name}"], check=True)
 
         service = "[Unit]\n"
         service += f"{description}\n"
         service += "\n"
         service += "[Service]\n"
-        service += f"ExecStart={path_directory}{script_name}\n"
+        service += f"ExecStart={self.path_directory}{script_name}\n"
         service += "\n"
         service += "[Install]\n"
         service += "WantedBy=multi-user.target"
@@ -410,7 +445,7 @@ class ServiceMaker:
         service_location = f"{home}/.config/systemd/user/"
 
         self.service_path = Path(f"{service_location}{self.new_service}")
-        self.data = f"{self.new_service}     s/u: user      path: {self.service_path}"
+        self.data = f"{self.new_service}     s/u: user      Path: {self.service_path}"
 
         self.service_path.parent.mkdir(parents=True, exist_ok=True)
         self.service_path.write_text(service)
@@ -564,7 +599,7 @@ class ServiceMaker:
                         self.choice = int(input("enter a number: "))
 
                     #The name and path of the service to be deleted
-                    delete_path = Path(re.search('(?<=path: )\\D+',json_data[self.choice-1])[0])
+                    delete_path = Path(re.search('(?<=Path: )\\D+',json_data[self.choice-1])[0])
                     service_name = re.search('(?:.{3,20}).service',json_data[self.choice-1])[0]
                     
                     #Checks if the user wants to delete said service
@@ -580,16 +615,7 @@ class ServiceMaker:
                         #run(["sudo", "systemctl", "--user", "kill", "--signal=SIGKILL", service_name], check=True)
                         run(["sudo", "systemctl", "disable", service_name])
                         run(["sudo", "systemctl", "daemon-reload"])
-                        run(["sudo","rm","-r", delete_path], check=True)
-
-                        #Removing service from data.json
-                        with open(self.data_path, "r", encoding="utf-8") as f:
-                            json_data = json.load(f)
-
-                        del json_data[self.choice-1]
-
-                        with open(self.data_path, "w", encoding="utf-8") as f:
-                            json.dump(json_data, f, ensure_ascii=False, indent=2)
+                        run(["sudo","rm","-r", delete_path])
 
                     elif self.fail_choice == 'n':
                         return None
@@ -599,6 +625,15 @@ class ServiceMaker:
                         print("Please enter (y)es or (n)o")
                         self.fail_choice = input(f"y/n: ")
                 
+                    #Removing service from data.json
+                    with open(self.data_path, "r", encoding="utf-8") as f:
+                        json_data = json.load(f)
+
+                    del json_data[self.choice-1]
+
+                    with open(self.data_path, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, ensure_ascii=False, indent=2)
+
 
             else:
                 print("There is no data.json file!")
@@ -620,7 +655,7 @@ class ServiceMaker:
     #            system_or_user = re.search('(?<=s/u: )\\d{4,6}',json_data[count])[0]
 
     #            if service_name == True and system_or_user == "System":
-    #                delete_path = Path(re.search('(?<=path: )\\D+',json_data[count])[0])
+    #                delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
     #                run(["sudo", "systemctl", "stop", service_name], check=True)
     #                run(["sudo", "systemctl", "disable", service_name], check=True)
     #                run(["sudo", "systemctl", "daemon-reload"], check=True)
@@ -630,7 +665,7 @@ class ServiceMaker:
     #                print(f"\nSystem service: {service_name} has been deleted!")
 
     #            elif service_name == True and system_or_user == "User":
-    #                delete_path = Path(re.search('(?<=path: )\\D+',json_data[count])[0])
+    #                delete_path = Path(re.search('(?<=Path: )\\D+',json_data[count])[0])
     #                run(["sudo", "systemctl", "stop", service_name], check=True)
     #                run(["sudo", "systemctl", "disable", service_name], check=True)
     #                run(["sudo", "systemctl", "daemon-reload"], check=True)
