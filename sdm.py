@@ -136,10 +136,6 @@ class ServiceMaker:
                 with open(self.script_directories, "w", encoding="utf-8") as f:
                     json.dump(self.script_data, f, ensure_ascii=False, indent=2)
             
-            #Picks an option from user script directories        
-            elif path_option not in ("1","2","3"):
-                self.path_directory = self.script_data[int((re.search(r'\d',str(path_option))[0]))-4]
-                    
             #Deletes an option from script_directories.json
             elif path_option not in ("1", "2", "3") and re.fullmatch(r'\d{1,2}d',str(path_option)):
 
@@ -181,7 +177,8 @@ class ServiceMaker:
                 self.script_directories.unlink()
 
             else:
-                print(f"\nNot a valid entry.")
+
+                self.path_directory = self.script_data[int((re.search(r'\d',str(path_option))[0]))-4]
         else:
             try:
                 path_option = int(input("\n:"))
@@ -207,8 +204,7 @@ class ServiceMaker:
                 else:
                     None
 
-                with open(self.script_directories, "r", encoding="utf-8") as f:
-                    self.script_data = json.load(f)
+                self.script_data = []
 
                 self.script_data.append(self.path_directory)
 
