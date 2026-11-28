@@ -318,7 +318,7 @@ class ServiceMaker:
             print(f"\n1) ~/.config/systemd/user/")
             print(f"2) /etc/systemd/user/")
             print(f"3) ~/.local/share/systemd/user/")
-            print(f"4) sdm directory: sdm/services/ (system unit)")
+            print(f"4) sdm directory: sdm/services/")
             print(f"5) other location")
             self.service_option = int(input("\n:"))
 
@@ -347,7 +347,7 @@ class ServiceMaker:
             self.data = f"{self.new_service}     s/u: user        Path: {self.service_path}"
 
             self.service_path.parent.mkdir(parents=True, exist_ok=True)
-            self.service_path.write_text(service)
+            self.service_path.write_text(self.service)
 
 
     def new_system_service(self):
@@ -392,59 +392,6 @@ class ServiceMaker:
         else:
             print(f"\nEnter a name for your user service")
             self.new_service = input(":")
-
-            print(f"\nEnter a description for your service")
-            description = input(":")
-
-        print(f"\nWhere is your script or program located?")
-        print(f"\n1) /usr/local/bin/")
-        print(f"2) /usr/sbin/")
-        print(f"3) other location")
-        try:
-            path_option = int(input("\n:"))
-        except ValueError:
-            print(f"\nNot a valid option. please choose 1, 2, or 3!")
-            path_option = int(input("\ntry again:"))
-
-        if path_option == 1:
-            self.path_directory = "/usr/local/bin/"
-
-        if path_option == 2:
-            self.path_directory = "/usr/sbin/"
-
-        #User provides his own directory to the script
-        if path_option == 3:
-            print(f"\nEnter the path location to your script or program")
-            self.path_directory = input(":")
-            while not re.fullmatch(r'/\d{3,26}/\d{3,26}/',self.path_directory):
-                print(f"\nPlease type a correct directory")
-                print(f"\n'{self.path_directory}' is not a valid directory")
-                print(f"Must be in this format: '/path/to/script/'")
-                self.path_directory = input(f"\ntry again:")
-            else:
-                None
-
-        print(f"\nWhat is the name of your script? e.g. restic.sh")
-        script_name = input(":")
-
-        execute_script = run(["sudo","chmod", "+x", f"{self.path_directory}{script_name}"], check=True)
-
-        service = "[Unit]\n"
-        service += f"{description}\n"
-        service += "\n"
-        service += "[Service]\n"
-        service += f"ExecStart={self.path_directory}{script_name}\n"
-        service += "\n"
-        service += "[Install]\n"
-        service += "WantedBy=multi-user.target"
-
-        service_location = f"{home}/.config/systemd/user/"
-
-        self.service_path = Path(f"{service_location}{self.new_service}")
-        self.data = f"{self.new_service}     s/u: user      Path: {self.service_path}"
-
-        self.service_path.parent.mkdir(parents=True, exist_ok=True)
-        self.service_path.write_text(service)
 
     def activate_service(self):
         """Activates new unit file"""
