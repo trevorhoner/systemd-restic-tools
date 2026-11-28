@@ -16,14 +16,16 @@ parser.add_argument('-n', '--new', action='store_true',
 parser.add_argument('-ns', '--new-system', nargs='?', const='new-system', 
                     default=None, metavar='-ns (system).service', help='new system unit')
 
-parser.add_argument('-nys', '--new-system-activate', nargs='?', const='new-system', 
+parser.add_argument('-nys', '--new-system-activate', nargs='?', const='new-system-activate', 
                     default=None, metavar='-nys (system).service', help='new system unit & activate')
 
 parser.add_argument('-nu', '--new-user', nargs='?', const='new-user', 
                     default=None, metavar='-nu (user).service', help='new user unit')
 
-parser.add_argument('-nyu', '--new-user-activate', nargs='?', const='new-user', 
-                    default=None, metavar='-nyu (user).service', help='new user unit & activate')
+parser.add_argument('-nyu', '-nuy', '-ynu', '-uny', '-yun', 
+                    '--new-user-activate', nargs='?', const='new-user-activate', 
+                    default=None, metavar='-nyu (user).service', 
+                    help='new user unit & activate')
 
 parser.add_argument('-y', '--yes', action='store_true', 
                     help='automatically activates/deactivates service')
@@ -108,7 +110,6 @@ class ServiceMaker:
 
             try:
                 path_option = input("\n:")
-                print(type(path_option))
             except ValueError:
                 print(f"\nNot a valid option.")
                 path_option = int(input("\ntry again:"))
@@ -147,7 +148,6 @@ class ServiceMaker:
 
             #Deletes script_directories.json
             elif re.fullmatch(r'\d{1,2}dall',path_option):
-                print("It's working")
                 dall_option = int(re.search(r'\d',path_option)[0])
 
                 if dall_option == 1:
@@ -275,13 +275,13 @@ class ServiceMaker:
 
             else:
 
-                self.service_path = Path(f"{self.service_location}{self.new_service}")
+                self.service_path = Path(f"{self.service_location}/{self.new_service}")
                 self.data = f"{self.new_service}     s/u: user        Path: {self.service_path}"
 
                 self.service_path.parent.mkdir(parents=True, exist_ok=True)
                 self.service_path.write_text(self.service)
 
-        if args.new_system:
+        if args.new_system or args.new_system_activate:
             #Asking the user where to save the .service unit file
             print(f"\nWhere do you want to save your system.service file?")
             print(f"\n1) /etc/systemd/system/")
@@ -306,13 +306,13 @@ class ServiceMaker:
             else:
                 None
                 
-            self.service_path = Path(f"{self.service_location}{self.new_service}")
-            self.data = f"{self.new_service}     s/u: user        Path: {self.service_path}"
+            self.service_path = Path(f"{self.service_location}/{self.new_service}")
+            self.data = f"{self.new_service}     s/u: system        Path: {self.service_path}"
 
             self.service_path.parent.mkdir(parents=True, exist_ok=True)
-            self.service_path.write_text(service)
+            self.service_path.write_text(self.service)
 
-        if args.new_user:
+        if args.new_user or args.new_user_activate:
             #Asking the user where to save the .service unit file
             print(f"\nWhere do you want to save your user.service file?")
             print(f"\n1) ~/.config/systemd/user/")
@@ -349,49 +349,45 @@ class ServiceMaker:
             self.service_path.parent.mkdir(parents=True, exist_ok=True)
             self.service_path.write_text(self.service)
 
-
     def new_system_service(self):
         """Makes new system service for systemd"""
 
-        if args.new_system != "new-system":
-            self.new_service = f"{str(args.new_system)}.service"
+        if args.new_system:
+            if args.new_system != "new-system":
+                self.new_service = f"{str(args.new_system)}.service"
 
-        else:
-            print(f"\nWhat would you like to name your system service?")
-            self.new_service = f"{input(f"\n:")}.service"
+            else:
+                print(f"\nEnter a name for your user service")
+                self.new_service = input(":")
 
-        print(f"\nWhere do you wish to save your new system.service unit?")
-        print(f"\n1) systemd directory: /etc/systemd/system/")
-        print(f"2) sdm directory: sdm/services/")
-        print(f"3) custom absolute-path: '/path/to/your/system.service'")
-        choice = int(input(f"\n:"))
+        elif args.new_system_activate:
 
-        if choice == 1:
-            service_location = "/etc/systemd/system/"
-            self.service_path = f"{service_location}/{self.new_service}"
+            if args.new_system_activate != "new-system-activate":
+                self.new_service = f"{str(args.new_system_activate)}.service"
 
-        elif choice == 2:
-            service_location = Path(__file__).resolve().parent / "services"
-            self.service_path = Path(f"{service_location}/{self.new_service}")
-
-        else:
-            print(f"\nPlease define your custom absolute-path")
-            service_location = input(":")
-            self.service_path = f"{service_location}/{self.new_service}"
-
-        self.data = f"{self.new_service}     s/u: system      Path: {self.service_path}"
-        self.service_path.parent.mkdir(parents=True, exist_ok=True)
-        self.service_path.write_text(service)
+            else:
+                print(f"\nEnter a name for your user service")
+                self.new_service = input(":")
 
     def new_user_service(self):
         """Makes new user service"""
 
-        if args.new_user != "new-user":
-            self.new_service = str(args.new_user)
+        if args.new_user:
+            if args.new_user != "new-user":
+                self.new_service = f"{str(args.new_user)}.service"
 
-        else:
-            print(f"\nEnter a name for your user service")
-            self.new_service = input(":")
+            else:
+                print(f"\nEnter a name for your user service")
+                self.new_service = input(":")
+
+        elif args.new_user_activate:
+
+            if args.new_user_activate != "new-user-activate":
+                self.new_service = f"{str(args.new_user_activate)}.service"
+
+            else:
+                print(f"\nEnter a name for your user service")
+                self.new_service = input(":")
 
     def activate_service(self):
         """Activates new unit file"""
@@ -480,19 +476,16 @@ class ServiceMaker:
     def write_service(self):
         """Write service to JSON file with directory"""
 
-        json_data = []
-
         if self.data_path.exists():
             with open(self.data_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
         else:
             json_data = []
+            json_data.append(self.data)
 
-        json_data.append(self.data)
-
-        with open(self.data_path, "w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
+            with open(self.data_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)
 
     def list_services(self):
         """Lists services from data.json"""
@@ -652,10 +645,17 @@ elif args.new_user:
 elif args.new_system_activate:
     sdm_new_system_activate = ServiceMaker()
     sdm_new_system_activate.new_system_service()
+    sdm_new_system_activate.service_information()
+    sdm_new_system_activate.new_service_output()
+    sdm_new_system_activate.write_service()
+    sdm_new_system_activate.activate_service()
 
 elif args.new_user_activate:
     sdm_new_user_activate = ServiceMaker()
     sdm_new_user_activate.new_user_service()
+    sdm_new_user_activate.service_information()
+    sdm_new_user_activate.new_service_output()
+    sdm_new_user_activate.write_service()
     sdm_new_user_activate.activate_service()
 
 elif args.list:
@@ -666,7 +666,7 @@ elif args.delete:
     sdm_delete = ServiceMaker()
     sdm_delete.delete_service()
 
-elif args.delete and args.yes:
+elif args.delete_deactivate:
     sdm_delete_yes = ServiceMaker()
     sdm_delete_yes.delete_service()
 
